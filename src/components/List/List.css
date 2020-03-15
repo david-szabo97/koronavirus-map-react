@@ -1,0 +1,7 @@
+.List-Item {
+  padding: 8px 0;
+}
+
+.List-Item + .List-Item {
+  border-top: 1px solid #ddd;
+}
