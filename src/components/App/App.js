@@ -98,7 +98,7 @@ function App() {
         <Map
           zoom={zoom}
           places={places}
-          googleMapURL="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFaIQUDuULBQUQN1tTOPcsOj_vrHjlgts"
+          googleMapURL={`https://maps.googleapis.com/maps/api/js?key=${process.env.GOOGLE_MAP_API_KEY}`}
           loadingElement={<div style={{ height: `100%` }} />}
           containerElement={<div style={{ height: `100vh` }} />}
           mapElement={<div style={{ height: `100%` }} />}
