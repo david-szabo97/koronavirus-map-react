@@ -1,5 +1,10 @@
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Environment variables
+
+* `REACT_APP_API_BASE_URL` Base URL of API (https://github.com/david-szabo97/koronavirus-api)
+* `REACT_APP_GOOGLE_MAP_API_KEY` API key for Google Maps (https://developers.google.com/maps/documentation/javascript/get-api-key)
+
 ## Available Scripts
 
 In the project directory, you can run:
