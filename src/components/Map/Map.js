@@ -1,69 +1,75 @@
 /* global google */
-import React, {Fragment, useCallback, useState, useRef, useEffect} from 'react';
+import React, { Fragment, useCallback, useState, useRef, useEffect } from 'react';
 import { withGoogleMap, GoogleMap, withScriptjs, Circle } from 'react-google-maps';
 import { MarkerWithLabel } from 'react-google-maps/lib/components/addons/MarkerWithLabel';
 import './Map.css'
 
 const shouldShowLabel = zoomLevel => zoomLevel > 4
-const labelStyle = {
-  backgroundColor: 'black',
-  color: 'white',
-  textAlign: 'center',
-  fontSize: '11px',
-  padding: '2px',
-  opacity: '0.5',
-  transform: 'translateX(-50%) translateY(16px)'
-}
 const isPointVisible = (bounds, { latitude, longitude }) => bounds.contains(new google.maps.LatLng(latitude, longitude))
 
-const Map = ({ zoom, center, onMapRef, places, onCenterChanged }) => {
+const Map = ({ zoom, center, places, onZoomChanged, onCenterChanged }) => {
   const mapRef = useRef(null)
-  const [zoomLevel, setZoomLevel] = useState(zoom)
-  const [bounds, setBounds] = useState(null)
+  const [visibles, setVisibles] = useState({})
+  const [labelAnchor] = useState(new google.maps.Point(0, 0))
 
   const handleZoomChanged = useCallback(() => {
-    setZoomLevel(mapRef.current.getZoom())
-    setBounds(mapRef.current.getBounds())
-  }, [mapRef])
+    if (!onZoomChanged) return
+    onZoomChanged(mapRef.current.getZoom())
+  }, [onZoomChanged])
 
-  const handleOnDragEnd = useCallback(() => {
-    setBounds(mapRef.current.getBounds())
-  }, [mapRef])
-
-  useEffect(() => {
-    setZoomLevel(mapRef.current.getZoom())
-    setBounds(mapRef.current.getBounds())
-  }, [zoom, center])
-
-  if (mapRef.current && bounds === null) {
-    setBounds(mapRef.current.getBounds())
-  }
+  const handleCenterChanged = useCallback(() => {
+    if (!onCenterChanged) return
+    onCenterChanged(mapRef.current.getCenter())
+  }, [onCenterChanged])
 
   useEffect(() => {
-    onMapRef(mapRef.current)
-  }, [ onMapRef, mapRef ])
+    const lastBounds = null
+    const lastZoomLevel = null
 
-  const placesComps = places.map(({ id, latitude, longitude, html, circle }) => {
+    const interval = setInterval(() => {
+      if (!mapRef.current) {
+        return
+      }
+
+      const bounds = mapRef.current.getBounds()
+      const zoomLevel = mapRef.current.getZoom()
+
+      if (lastBounds !== null && lastBounds.equals(bounds)) {
+        return
+      }
+
+      if (lastZoomLevel !== null && lastZoomLevel === zoomLevel) {
+        return
+      }
+
+      const visibles = {}
+      for (const { id, latitude, longitude } of places) {
+        visibles[id] = shouldShowLabel(zoomLevel) && isPointVisible(bounds, { latitude, longitude })
+      }
+
+      setVisibles(visibles)
+    }, 100)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [places])
+
+  const placesComps = places.map(({ id, center, html, circle, label }) => {
     return (
       <Fragment key={id}>
-        {shouldShowLabel(zoomLevel) && isPointVisible(bounds, { latitude, longitude })  ? <MarkerWithLabel
-          position={{
-            lat: latitude,
-            lng: longitude
-          }}
-          labelAnchor={new google.maps.Point(0, 0)}
-          labelStyle={labelStyle}
+        {visibles[id]  ? <MarkerWithLabel
+          position={center}
+          labelAnchor={labelAnchor}
+          labelClass="Label"
         >
-          <div dangerouslySetInnerHTML={{__html: html}}/>
+          {label}
         </MarkerWithLabel>
         : ''}
 
         {circle && <Circle
-          defaultCenter={{
-            lat: latitude,
-            lng: longitude
-          }}
-          radius={circle.radius * zoomLevel * 1128.497220}
+          defaultCenter={center}
+          radius={circle.radius}
           options={circle.options}
         />}
       </Fragment>
@@ -73,9 +79,8 @@ const Map = ({ zoom, center, onMapRef, places, onCenterChanged }) => {
   return (
     <GoogleMap
       onZoomChanged={handleZoomChanged}
-      onDragEnd={handleOnDragEnd}
+      onCenterChanged={handleCenterChanged}
       ref={mapRef}
-      onCenterChanged={onCenterChanged}
       zoom={zoom}
       center={center}
     >
